@@ -1,0 +1,151 @@
+import tkinter as tk
+from tkinter import ttk, messagebox
+import mysql.connector
+
+# ---------- DATABASE CONNECTION ----------
+db = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    password="Salam@2004",
+    database="movie_project"
+)
+
+cursor = db.cursor()
+
+# ---------- FUNCTIONS ----------
+
+def add_movie():
+    title = title_entry.get()
+    genre = genre_entry.get()
+    year = year_entry.get()
+    rating = rating_entry.get()
+    watched = watched_var.get()
+
+    if not title or not genre or not year or not rating:
+        messagebox.showwarning("Input Error", "Please fill all fields")
+        return
+
+    query = """
+    INSERT INTO movies (title, genre, release_year, rating, watched)
+    VALUES (%s, %s, %s, %s, %s)
+    """
+
+    values = (title, genre, int(year), float(rating), watched)
+    cursor.execute(query, values)
+    db.commit()
+
+    messagebox.showinfo("Success", "Movie added successfully")
+    clear_fields()
+    view_movies()
+
+
+def view_movies():
+    for row in tree.get_children():
+        tree.delete(row)
+
+    cursor.execute("SELECT * FROM movies")
+    rows = cursor.fetchall()
+
+    for row in rows:
+        tree.insert("", tk.END, values=row)
+
+
+def search_movie():
+    name = title_entry.get()
+
+    if not name:
+        messagebox.showwarning("Input Error", "Enter movie name to search")
+        return
+
+    query = "SELECT * FROM movies WHERE title = %s"
+    cursor.execute(query, (name,))
+    rows = cursor.fetchall()
+
+    for row in tree.get_children():
+        tree.delete(row)
+
+    for row in rows:
+        tree.insert("", tk.END, values=row)
+
+
+def delete_movie():
+    name = title_entry.get()
+
+    if not name:
+        messagebox.showwarning("Input Error", "Enter movie name to delete")
+        return
+
+    query = "DELETE FROM movies WHERE title = %s"
+    cursor.execute(query, (name,))
+    db.commit()
+
+    if cursor.rowcount:
+        messagebox.showinfo("Success", "Movie deleted")
+    else:
+        messagebox.showerror("Error", "Movie not found")
+
+    clear_fields()
+    view_movies()
+
+
+def clear_fields():
+    title_entry.delete(0, tk.END)
+    genre_entry.delete(0, tk.END)
+    year_entry.delete(0, tk.END)
+    rating_entry.delete(0, tk.END)
+    watched_var.set("Yes")
+
+
+# ---------- UI SETUP ----------
+root = tk.Tk()
+root.title("Movie Database")
+root.geometry("700x500")
+root.resizable(False, False)
+
+# ---------- INPUT SECTION ----------
+frame = tk.Frame(root)
+frame.pack(pady=10)
+
+tk.Label(frame, text="Title").grid(row=0, column=0)
+title_entry = tk.Entry(frame)
+title_entry.grid(row=0, column=1)
+
+tk.Label(frame, text="Genre").grid(row=1, column=0)
+genre_entry = tk.Entry(frame)
+genre_entry.grid(row=1, column=1)
+
+tk.Label(frame, text="Year").grid(row=0, column=2)
+year_entry = tk.Entry(frame)
+year_entry.grid(row=0, column=3)
+
+tk.Label(frame, text="Rating").grid(row=1, column=2)
+rating_entry = tk.Entry(frame)
+rating_entry.grid(row=1, column=3)
+
+tk.Label(frame, text="Watched").grid(row=2, column=0)
+watched_var = tk.StringVar(value="Yes")
+ttk.Combobox(frame, textvariable=watched_var, values=["Yes", "No"], width=17).grid(row=2, column=1)
+
+# ---------- BUTTONS ----------
+btn_frame = tk.Frame(root)
+btn_frame.pack(pady=10)
+
+tk.Button(btn_frame, text="Add Movie", width=15, command=add_movie).grid(row=0, column=0, padx=5)
+tk.Button(btn_frame, text="View Movies", width=15, command=view_movies).grid(row=0, column=1, padx=5)
+tk.Button(btn_frame, text="Search Movie", width=15, command=search_movie).grid(row=0, column=2, padx=5)
+tk.Button(btn_frame, text="Delete Movie", width=15, command=delete_movie).grid(row=0, column=3, padx=5)
+
+# ---------- TABLE ----------
+tree = ttk.Treeview(root, columns=("ID", "Title", "Genre", "Year", "Rating", "Watched"), show="headings")
+tree.pack(pady=20, fill="both", expand=True)
+
+for col in ("ID", "Title", "Genre", "Year", "Rating", "Watched"):
+    tree.heading(col, text=col)
+    tree.column(col, width=100)
+
+# Load data initially
+view_movies()
+
+root.mainloop()
+
+db.close()
