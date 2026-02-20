@@ -1,0 +1,97 @@
+import mysql.connector
+
+db = mysql.connector.connect(
+    host="localhost",
+    user="root",              
+    password="Salam@2004", \
+    database="movie_project"
+)
+
+cursor = db.cursor()
+
+def add_movie():
+    title = input("Enter movie name: ")
+    genre = input("Enter genre: ")
+    year = int(input("Enter release year: "))
+    rating = float(input("Enter rating: "))
+    watched = input("Watched (Yes/No): ")
+
+    query = """
+    INSERT INTO movies (title, genre, release_year, rating, watched)
+    VALUES (%s, %s, %s, %s, %s)
+    """
+    
+    values = (title, genre, year, rating, watched)
+
+    cursor.execute(query, values)
+    db.commit()
+    print("Movie added successfully\n")
+
+def view_movies():
+    cursor.execute("SELECT * FROM movies")
+    rows = cursor.fetchall()
+
+    if not rows:
+        print("No movies found\n")
+        return
+
+    print("\n Movie List")
+    for row in rows:
+        print(row)
+    print()
+
+def search_movie():
+    name = input("Enter movie name to search: ")
+
+    query = "SELECT * FROM movies WHERE title = %s"
+    cursor.execute(query, (name,))
+
+    result = cursor.fetchall()
+
+    if result:
+        print("Movie Found:")
+        for movie in result:
+            print(movie)
+    else:
+        print("Movie not found")
+
+    print()
+    
+def delete_movie():
+    name = input("Enter movie name to delete: ")
+
+    query = "DELETE FROM movies WHERE title = %s"
+    cursor.execute(query, (name,))
+    db.commit()
+
+    if cursor.rowcount:
+        print("Movie deleted successfully")
+    else:
+        print("Movie not found")
+
+    print()
+
+while True:
+    print("====== Movie Database ======")
+    print("1. Add Movie")
+    print("2. View Movies")
+    print("3. Search Movie")
+    print("4. Delete Movie")
+    print("5. Exit")
+
+    choice = input("Choose option: ")
+
+    if choice == "1":
+        add_movie()
+    elif choice == "2":
+        view_movies()
+    elif choice == "3":
+        search_movie()
+    elif choice == "4":
+        delete_movie()
+    elif choice == "5":
+        break
+    else:
+        print("Invalid choice\n")
+
+db.close()
